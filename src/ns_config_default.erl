@@ -207,7 +207,7 @@ default() ->
          stderr_to_stdout,
          stream]
        },
-       {memcached, path_config:component_path(bin, "memcached"),
+       {memcached, path_config:component_path(bin, "mcd"),
         ["-X", path_config:component_path(lib, "memcached/stdin_term_handler.so"),
          "-X", {path_config:component_path(lib,
                                            "memcached/file_logger.so" ++
