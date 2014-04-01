@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import os, subprocess, sys, signal, atexit, socket, getopt, select, shlex
+import os, subprocess, sys, signal, atexit, socket, getopt, select, shlex, platform
 
 base_direct_port = 12000
 base_api_port = 9000
@@ -65,7 +65,6 @@ def couch_configs(i):
 
 def os_specific(args, params):
     """Add os-specific junk to the cluster startup."""
-    import platform
 
     if platform.system() == 'Darwin':
         import resource
@@ -168,16 +167,19 @@ def start_cluster(num_nodes, start_index, host, extra_args, args_prefix):
 
         w = None
 
-        if "-noinput" in args:
-            (r,w) = os.pipe()
+        if platform.system() != "Windows":
+            # Running python on Windows complains that this isn't supported
+            # on Windows.
+            if "-noinput" in args:
+                (r,w) = os.pipe()
 
-            params['stdin'] = r
+                params['stdin'] = r
 
-            if 'setpgrp' in os.__dict__:
-                # this puts child out of our process group. So that
-                # Ctrl-C doesn't deliver SIGINT to it, leaving us
-                # ability to it shutdown carefully or otherwise
-                params['preexec_fn'] = os.setpgrp
+                if 'setpgrp' in os.__dict__:
+                    # this puts child out of our process group. So that
+                    # Ctrl-C doesn't deliver SIGINT to it, leaving us
+                    # ability to it shutdown carefully or otherwise
+                    params['preexec_fn'] = os.setpgrp
 
         pr = subprocess.Popen(args, **params)
         if w != None:
@@ -198,8 +200,13 @@ def maybe_spawn_epmd():
         socket.create_connection(("127.0.0.1", 4369)).close()
     except socket.error:
         print("Spawning epmd...\n")
-        subprocess.Popen("erl -noshell -setcookie nocookie -sname init -run init stop 2>&1 > /dev/null",
-                         shell = True).communicate()
+        if platform.system() == 'Windows':
+            # Redirecting to > NUL didn't seem to work as expected
+            subprocess.Popen("erl -noshell -setcookie nocookie -sname init -run init stop",
+                             shell = True).communicate()
+        else:
+            subprocess.Popen("erl -noshell -setcookie nocookie -sname init -run init stop 2>&1 > /dev/null",
+                             shell = True).communicate()
 
 def find_primary_addr():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
