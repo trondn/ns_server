@@ -26,7 +26,10 @@ def setup_path():
 
         for d, _, _ in dirs:
             if os.path.basename(d) == "ebin":
-                ebins.append(d)
+                if platform.system() == "Windows":
+                    ebins.append(d.replace('\\','/'))
+                else:
+                    ebins.append(d)
 
         return ebins
 
